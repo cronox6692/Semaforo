@@ -98,7 +98,7 @@ Semaforo.obj.s19: $(BBL_SRCS) $(EXECUTABLES)
 
 # Other Targets
 clean:
-	-$(RM) $(S_DEPS_QUOTED) "./*/*.d"  $(BURNER_OUTPUT_OUTPUTS_QUOTED) $(ASM_UPPER_DEPS_QUOTED) "./*/*.obj"  $(EXECUTABLES_QUOTED) $(S_UPPER_DEPS_QUOTED) $(ProjDirPath)/FLASH/Semaforo.obj
+	-$(RM) $(S_DEPS_QUOTED) "./*/*.d"  $(BURNER_OUTPUT_OUTPUTS_QUOTED) $(ASM_UPPER_DEPS_QUOTED) "./*/*.obj"  $(EXECUTABLES_QUOTED) $(S_UPPER_DEPS_QUOTED) $(ProjDirPath)/FLASH/Semaforo.obj $(ProjDirPath)/FLASH/Semaforo.args $(ProjDirPath)/FLASH/Semaforo.obj.args $(ProjDirPath)/FLASH/Semaforo.obj.s19 $(ProjDirPath)/FLASH/Semaforo.sx
 	-@echo ' '
 
 .PHONY: all clean dependents explicit-dependencies warning-messages
