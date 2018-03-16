@@ -1,9 +1,9 @@
 	INCLUDE 'MC9S08JM16.INC' 
 	
 LOCK	EQU		6; Verificar el enganche del reloj
-LEDV	EQU     0
-LEDA    EQU     1
-LEDR    EQU     2
+LEDV	EQU     2
+LEDA    EQU     3
+LEDR    EQU     4
 
 		ORG 	0B0H; Direccion de memoria de variables	
 
@@ -26,7 +26,7 @@ INICIO:
 		BRCLR	LOCK,MCGSC,*      ;Espere a que el oscilador se enganche
 		MOV		#00011100B,PTBDD  ;PUERTO B SALIDA 3 PINES DE SALIDA   
 		LDA		#00000011B        ;PARA RESISTENCIA DE PULL-UP  00011000
-		STA		PTBPE 			  ;PUERTO E ENTRADA /
+		STA		PTBPE 			  ;PUERTO B ENTRADA /
 
 
 		CLR 	AUTOSET           ;--------------------------
@@ -72,7 +72,7 @@ VALORES_2:MOV 	#4H, V1
 ;--------------------------------------------------------------
 ;-----------------SUBRUTINA SEMAFORO---------------------------
 ;--------------------------------------------------------------
-S_SEM:  LDA      AUTO
+S_SEM:  LDA      AUTOSET
 	    CBEQA    #1,MANUAL
 	    BSET     LEDV,PTBD
 	    LDA      V1
@@ -84,7 +84,6 @@ S_SEM:  LDA      AUTO
 	    BSET     LEDR,PTBD
 	    JSR      SUB_T
 	    BCLR     LEDR,PTBD
-	    JSR      SUB_T
 	    BSET     LEDV,PTBD
 	    BSET     LEDA,PTBD
 	    LDA      V2
@@ -93,7 +92,54 @@ S_SEM:  LDA      AUTO
 	    BCLR     LEDA,PTBD
 	    RTS                         ; RETORNA A LOOP
 	    
-MANUAL:
+MANUAL: CLR      CONT
+		CLRA
+		BSET     LEDV,PTBD
+LEER:	LDA      PTBD
+		AND 	 #00000011B
+		CBEQA    #1H, REG2
+		CBEQA    #0H, LEER
+		CBEQA    #3H, LEER
+		;SI ES 2 SIGUE
+ESPERA:	LDA 	 PTBD
+		AND      #00000011B
+		CBEQA	 #3H,M_M
+		JMP      ESPERA
+M_M:	LDA 	 CONT
+		ADD      #1H
+		STA      CONT
+PRE:	CBEQA    #1H, MODO1
+		CBEQA    #2H, MODO2
+		CBEQA    #3H, MODO3
+		CLR      CONT
+		BSET     LEDV,PTBD
+		JMP      LEER
+		
+MODO1:  BCLR     LEDV,PTBD
+		JSR      SUB_P
+		LDA      AUTOSET
+		CBEQA    #0,AUTO2
+		JMP      PRE
+MODO2:  BSET     LEDR,PTBD
+		JMP      LEER 
+MODO3:  BCLR     LEDR,PTBD
+		BSET     LEDV,PTBD
+		BSET     LEDA,PTBD
+		JMP      LEER				  
+
+REG2:   LDA 	 PTBD
+		AND 	 #00000011B
+		CBEQA	 #3H, AUTO2
+		JMP      REG2
+AUTO2:	CLR 	 AUTOSET
+		MOV 	#6H, V1
+		MOV 	#5H, AUX
+		MOV 	#4H, R1
+		MOV 	#2H, V2
+		BCLR 	LEDV, PTBD
+		BCLR	LEDA, PTBD
+		BCLR	LEDR, PTBD
+		RTS		
 
 		RTS	                        ; RETORNA A LOOP
 		
@@ -151,13 +197,3 @@ AUTO_REG:
 		
 		ORG     0FFFFEH
 		FDB		INICIO
-
-	
-		
-		
-		
-		
-		
-		
-		
-;------------CONFIGURACION TIERRAS----
