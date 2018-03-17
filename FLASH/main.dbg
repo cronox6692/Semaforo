@@ -3272,6 +3272,13 @@ INICIO:	CLRA 				      ;Limpiar acumulador
 		MOV 	#4H, R1
 		MOV 	#1H, A1
 		MOV 	#2H, V2           ;--------------------------	
+		BSET    LEDV,PTBD
+		BSET    LEDA,PTBD
+		BSET    LEDR,PTBD
+		JSR      SUB_T
+		BCLR    LEDV,PTBD
+		BCLR    LEDA,PTBD
+		BCLR    LEDR,PTBD
 LOOP:	JSR     S_SEM 
 		LDA 	PTBD
 		AND 	#00000011B
@@ -3329,6 +3336,7 @@ S_SEM:  LDA      AUTOSET
 	    RTS                         ; RETORNA A LOOP    
 MANUAL: CLR      CONT               ; Limpia contador
 		CLRA                        ; Inicializa el contador
+		BCLR     LEDA,PTBD
 		BSET     LEDV,PTBD          ; PRENDE LED VERDE
 LEER:	LDA      PTBD               ; LEE puerto
 		AND 	 #00000011B         ; Enmasara puerto
@@ -3342,25 +3350,27 @@ ESPERA:	LDA 	 PTBD             ; lee puerto
 		JMP      ESPERA           ;
 M_M:	LDA 	 CONT             ; incrementa en 1 contador
 		ADD      #1H              ;
-		STA      CONT             ;
-PRE:	LDA		 CONT
-		CBEQA    #1H, MODO1
-		CBEQA    #2H, MODO2
+PRE:	STA      CONT             ;
+    	CBEQA    #1H, MODO1
 		CBEQA    #3H, MODO3
-		CLR      CONT
-		BSET     LEDV,PTBD
-		JMP      LEER	
+		CBEQA    #4H, MODO4	
+		JMP      MANUAL
 MODO1:  BCLR     LEDV,PTBD
 		JSR      SUB_P
-		LDA      AUTOSET
+    	LDA      AUTOSET
 		CBEQA    #0H,AUTO2
-		JMP      PRE
-MODO2:  BSET     LEDR,PTBD
-		JMP      LEER 
+        BSET     LEDR,PTBD
+ESP:	LDA 	 PTBD             ; lee puerto
+		AND      #00000011B       ; enmascara
+		CBEQA	 #3H,LEER          ; si suelta el boton pasa a modo manual
+		JMP      ESP    
 MODO3:  BCLR     LEDR,PTBD
 		BSET     LEDV,PTBD
 		BSET     LEDA,PTBD
-		JMP      LEER				  
+		MOV      #3H,CONT
+		JMP      LEER	
+MODO4: 	MOV      #0H,CONT
+		JMP      MANUAL			  
 REG2:   LDA 	 PTBD
 		AND 	 #00000011B			;espera que lo suelte
 		CBEQA	 #3H, AUTO2
@@ -3394,7 +3404,7 @@ CICLOT: AIX		#-1D         ; pierde tiempo
 SUB_P:  LDA     AUX
 		PSHA  
 		LDA     AUTOSET        ; carga valor de auto 
-		CBEQA   #1H,P_M      ; pregunta valor de auto (modo)
+		CBEQA   #1H,P_M2      ; pregunta valor de auto (modo)
 		LDA     #1H          ; carga acomulador con 1 para 1s
 CICLO_P:BSET    LEDA,PTBD   ; prende led amarillo
 		JSR     SUB_T       ; espera 1s
@@ -3404,6 +3414,7 @@ CICLO_P:BSET    LEDA,PTBD   ; prende led amarillo
 		PULA
 		STA     AUX			; Se obtiene de nuevo el valor de aux
 		RTS
+P_M2:	PULA
 P_M:    LDA     #1H         ; carga acomulador con 1 para 1s
 		BSET    LEDA,PTBD   ; Prende amarillo
 		JSR     SUB_T       ; espera 1s
@@ -3414,21 +3425,20 @@ P_M:    LDA     #1H         ; carga acomulador con 1 para 1s
 		CBEQA   #0H,P_M	    ; Si no oprime nada sigue parpadeando
 		CBEQA   #3H,P_M     ; si oprime los dos pulsadores sigue parpandeando
 		CBEQA   #1H,REG		;
-		;SI ES IGUAL A 2
 SOST_P: LDA 	PTBD              
 		AND 	#00000011B        
-		CBEQA   #3H,SOLT_P 
+		CBEQA   #3H,SOLT_P
+		BCLR    LEDV,PTBD   ; apaga led amarillo
+		BCLR    LEDA,PTBD   ; apaga led amarillo
+		BCLR    LEDR,PTBD   ; apaga led amarillo
 		JMP     SOST_P           
-SOLT_P: LDA     #1H
-		ADD     CONT
-		STA     CONT              ; contador igual a 2
-		RTS                       ; RETORNA A SUBRUTINA SEMAFORO
+SOLT_P: MOV     #2H,CONT    ; contador igual a 2
+		RTS 					  ; RETORNA A SUBRUTINA SEMAFORO
 REG:    LDA 	PTBD              ;-----------------------------------
 		AND 	#00000011B        ; Se hace un ciclo while infinito hasta que 
-		CBEQA   #3H,AUTO_REG	  ; se suelte el boton TEMP
+		CBEQA   #3H,AUTO_R	  ; se suelte el boton TEMP
 		JMP     REG               ;-----------------------------------------
-AUTO_REG:
-		MOV     #0H,AUTOSET       ; una vez se suelta el boton se carga autoset con 1
+AUTO_R: MOV     #0H,AUTOSET       ; una vez se suelta el boton se carga autoset con 1
 		RTS                       ; regresa a subrutina semaforo
 		
 		ORG     0FFFEH
