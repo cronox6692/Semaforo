@@ -3271,13 +3271,13 @@ INICIO:	CLRA 				      ;Limpiar acumulador
 		MOV 	#5H, AUX           ; Valores de la secuencia 1
 		MOV 	#4H, R1
 		MOV 	#1H, A1
-		MOV 	#2H, V2           ;--------------------------	
+		MOV 	#2H, V2            ;--------------------------	
 LOOP:	JSR     S_SEM 
 		LDA 	PTBD
 		AND 	#00000011B
-		CBEQA   #0H,LOOP		  ;Lee el puerto si se oprime un AUTO sigue a 
-		CBEQA   #3H,LOOP          ;SALTO_1 si se oprimer TEMP salta SALTO_2
-		CBEQA   #2H,SALTO_A       ;-------------------------
+		CBEQA   #0H,LOOP		   ;Lee el puerto si se oprime un AUTO sigue a 
+		CBEQA   #3H,LOOP           ;SALTO_1 si se oprimer TEMP salta SALTO_2
+		CBEQA   #2H,SALTO_A        ;-------------------------
 		;SI ES IGUAL A 1 SIGUE
 SALTO_M:LDA 	PTBD              ;-------------------------
 		AND 	#00000011B		  ; se hace un ciclo while infinito hasta que
@@ -3292,7 +3292,7 @@ SALTO_A:LDA 	PTBD              ;-----------------------------------
 		CBEQA   #3H,VALORES		  ; se suelte el boton TEMP
 		JMP     SALTO_A           ;-----------------------------------------
 VALORES:LDA     V1                ; Carga en acomulador el valor de V1
-		CBEQA   #6H,VALORES_2      ; Si el tiempo de verde es 6s salta a rutina 
+		CBEQA   #6H,VALORES_2     ; Si el tiempo de verde es 6s salta a rutina 
 		MOV 	#6H, V1
 		MOV 	#5H, AUX
 		MOV 	#4H, R1
@@ -3328,42 +3328,51 @@ S_SEM:  LDA      AUTOSET
 	    BCLR     LEDA,PTBD
 	    RTS                         ; RETORNA A LOOP    
 MANUAL: CLR      CONT               ; Limpia contador
-		CLRA                        ; Inicializa el contador
-		BSET     LEDV,PTBD          ; PRENDE LED VERDE
+		CLRA						;
+		BSET     LEDA,PTBD			;
+	    BCLR     LEDA,PTBD			;
+	    BCLR     LEDR,PTBD 			;
 LEER:	LDA      PTBD               ; LEE puerto
 		AND 	 #00000011B         ; Enmasara puerto
 		CBEQA    #1H, REG2          ; Si oprime auto --> salta a REG2
-		CBEQA    #3H, LEER          ; si no se oprime nada , vulve a preguntar
+		CBEQA	 #2H, AUM			; AUMENTA CONTADOR
+		CBEQA    #3H, PRE         	; si no se oprime nada , va a preguntar
 		CBEQA    #0H, LEER          ; si oprime los dos vulve a preguntar
-		;SI ES 2 --> oprimio pasar al siguiente led
-ESPERA:	LDA 	 PTBD             ; lee puerto
-		AND      #00000011B       ; enmascara
-		CBEQA	 #3H,M_M          ; si suelta el boton pasa a modo manual
-		JMP      ESPERA           ;
-M_M:	LDA 	 CONT             ; incrementa en 1 contador
-		ADD      #1H              ;
-		STA      CONT             ;
 PRE:	LDA		 CONT
-		CBEQA    #1H, MODO1
-		CBEQA    #2H, MODO2
-		CBEQA    #3H, MODO3
-		CLR      CONT
-		BSET     LEDV,PTBD
-		JMP      LEER	
-MODO1:  BCLR     LEDV,PTBD
-		JSR      SUB_P
-		LDA      AUTOSET
-		CBEQA    #0H,AUTO2
-		JMP      PRE
-MODO2:  BSET     LEDR,PTBD
+		CBEQA    #0H, MODO0          ; Si oprime auto --> salta a REG2
+		CBEQA	 #1H, MODO1			; AUMENTA CONTADOR
+		CBEQA    #2H, MODO2         	; si no se oprime nada , vulve a preguntar
+		CBEQA    #3H, MODO3          ; si oprime los dos vulve a preguntar
+MODO0:	BCLR	 LEDA,PTBD			; APAGA LED
+		BCLR	 LEDR,PTBD			; APAGA LED
+		BSET     LEDV,PTBD          ; PRENDE LED VERDE		
+		JMP		 LEER
+MODO1:  BCLR     LEDV,PTBD			;APAGA VERDE
+		BSET	 LEDA,PTBD			;PRENDE AMARILLO
+		LDA      A1					;
+	    JSR      SUB_T 				;LLAMA RUTINA DE TIEMPO
+		BCLR	 LEDA,PTBD			;
+		JMP      LEER
+MODO2:  BSET     LEDR,PTBD			;PRENDE LED ROJO
 		JMP      LEER 
-MODO3:  BCLR     LEDR,PTBD
-		BSET     LEDV,PTBD
-		BSET     LEDA,PTBD
-		JMP      LEER				  
-REG2:   LDA 	 PTBD
+MODO3:  BCLR     LEDR,PTBD			;LIMPIA ROJO
+		BSET     LEDV,PTBD			;PONE VERDE Y AMARILLO
+		BSET     LEDA,PTBD			;
+		JMP      LEER				;VA A LEER PUERTOS
+AUM:   	LDA 	 PTBD				;Para regresar
 		AND 	 #00000011B			;espera que lo suelte
-		CBEQA	 #3H, AUTO2
+		CBEQA	 #3H, AUM2			;SALTA SI ES IGUAL A 11
+		JMP      AUM				;
+AUM2:	LDA		CONT				;
+		CBEQA	#4H,LIMPIA			;
+		ADD		#1H					;
+		STA		CONT				;
+		JMP		LEER				;
+LIMPIA:	MOV		#0H,CONT			;
+		JMP		 LEER				;VA A LEER PUERTOS
+REG2:   LDA 	 PTBD				;Para regresar
+		AND 	 #00000011B			;espera que lo suelte
+		CBEQA	 #3H, AUTO2			;
 		JMP      REG2
 AUTO2:	CLR 	 AUTOSET
 		MOV 	#6H, V1
@@ -3433,3 +3442,5 @@ AUTO_REG:
 		
 		ORG     0FFFEH
 		FDB		INICIO
+;-----------RUTINA PARA AUMENTAR--------------------------------------
+
